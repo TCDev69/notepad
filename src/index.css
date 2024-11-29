@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::selection {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+/* styles.css */
+.App {
+  background-color: #1a202c;
+  padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+input[type="color"]:focus {
+  outline: none;
+}
+
+.grid {
+  display: grid;
+  gap: 10px;
+}
+
+html, body {
+  background-color: #202434; 
+  height: 100%;
+  margin: 0;
+}
+
+/* Rimuovi la spaziatura e i simboli predefiniti, creando uno stile simile al Markdown */
+.react-quill .ql-editor ul {
+  padding-left: 0; /* Rimuove la spaziatura iniziale */
+  margin-left: 0; /* Rimuove la spaziatura tra la lista e il bordo */
+}
+
+.react-quill .ql-editor ul li {
+  position: relative;
+  list-style-type: none; /* Rimuove i punti predefiniti */
+  margin-bottom: 5px;
+  padding-left: 20px; /* Aggiunge spaziatura a sinistra per simulare l'indentazione */
+}
+
+/* Stile personalizzato per i punti elenco, simile al markdown (- o *) */
+.react-quill .ql-editor ul li::before {
+  content: "- "; /* Usa un trattino come simbolo per la lista */
+  position: absolute;
+  left: 0; /* Posiziona il simbolo all'inizio della lista */
+  top: 0;
+  color: #fff; /* Colore del punto */
+  font-size: 20px; /* Modifica la dimensione del punto */
+}
+
+/* Personalizzazione dei livelli di indentazione */
+.react-quill .ql-editor ul li > ul {
+  margin-left: 20px; /* Aggiungi spazio tra il primo e il secondo livello */
+}
+
+.react-quill .ql-editor ul li > ol {
+  margin-left: 20px; /* Aggiungi spazio tra il primo e il secondo livello per liste ordinate */
+}
+
+.react-quill .ql-editor ol {
+  padding-left: 0;
+}
+
+.react-quill .ql-editor ol li {
+  list-style-type: decimal; /* Imposta numerazione per le liste ordinate */
+}
+
+.react-quill .ql-editor ol li::before {
+  content: counter(list-item) ". "; /* Usa numeri per la lista ordinata */
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #fff;
+  font-size: 20px;
+}
