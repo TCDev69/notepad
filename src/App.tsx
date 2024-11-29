@@ -1,24 +1,21 @@
-import { Route, Routes, Link } from "react-router-dom";
-import { useState } from "react";
-import {
-  Github
-} from "lucide-react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
+import LoginPage from "./pages/login";
+import NoteEditor from "./pages/editor";
+import RegisterPage from "./pages/register";
 
-import { SearchBar } from "./components/SearchBar";
-import { GDPRBanner } from "./components/GDPRBanner";
-import { PrivacyPolicy } from "./components/PrivacyPolicy";
-import Bbase2 from "./pages/bbase2";
+function App() {
+    const [token, setToken] = useState<string | null>(null);
+    const [showRegister, setShowRegister] = useState(false);
 
+    if (!token) {
+        return showRegister ? (
+            <RegisterPage onRegister={() => setShowRegister(false)} />
+        ) : (
+            <LoginPage onLogin={(jwt) => setToken(jwt)} />
+        );
+    }
 
-export default function App() {
-  return (
-    <>
-      <GDPRBanner />
-      <Routes>
-        <Route path="/" element={<Bbase2 />} />
-        <Route path="*" element={<Bbase2 />} />
-      </Routes>
-    </>
-  );
+    return <NoteEditor token={token} />;
 }
+
+export default App;
