@@ -3,7 +3,7 @@
 ## Download
 ```sh
 git clone https://github.com/TCDev69/notepad.git
-cd multitool/
+cd notepad/
 ```
 
 ## Install dependencies:
