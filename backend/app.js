@@ -1,53 +1,53 @@
 const express = require("express");
-const simpleGit = require("simple-git");
-const { v4: uuidv4 } = require("uuid");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const fs = require("fs");
-const path = require("path");
 const bodyParser = require("body-parser");
+const cors = require("cors");
+const simpleGit = require("simple-git");
+const path = require("path");
+const fs = require("fs");
+const { exec } = require('child_process');
+require("dotenv").config();
 
 const app = express();
+const port = 5000;
+const repoPath = path.join(__dirname, "repo");
+const gitUrl = "https://github.com/TCDev69/np-usr.git";
+const authToken = process.env.GITHUB_PAT;
+
 const git = simpleGit();
-const SECRET_KEY = "your_secret_key"; // Cambia con un valore sicuro
-const REPO_PATH = "./repo";
-const USERS_DIR = "./repo/users"; // Cartelle utente nel repo
 
-app.use(bodyParser.json());
+app.use(cors());
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Inizializza il repository Git
-const initGitRepo = async () => {
-  if (!fs.existsSync(REPO_PATH)) {
-    fs.mkdirSync(REPO_PATH, { recursive: true });
-    await git.cwd(REPO_PATH).init();
-  }
-};
-initGitRepo();
 
-// Fake database per gli utenti
-const users = [];
+// Clona il repository se non esiste già
+(async function setupGitRepo() {
+    if (!fs.existsSync(repoPath)) {
+        const gitWithAuth = `https://${authToken}@${gitUrl.split("https://")[1]}`;
+        await git.clone(gitWithAuth, repoPath);
+    }
+})();
 
-// Utility: Genera un token JWT
-const generateToken = (username) => {
-  return jwt.sign({ username }, SECRET_KEY, { expiresIn: "1h" });
+// Carica gli utenti dal file users.json
+const loadUsers = () => {
+    const usersFile = path.join(__dirname, "users.json");
+    return fs.existsSync(usersFile) ? JSON.parse(fs.readFileSync(usersFile, "utf8")) : {};
 };
 
-// Utility: Autenticazione JWT
-const authenticate = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).send("Access denied. No token provided.");
+// Endpoint di login
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
+    const users = loadUsers();
+    const user = users[username];
 
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(403).send("Invalid token.");
-  }
-};
+    if (user && user.password === password) {
+        return res.status(200).json({ message: "Login successful" });
+    }
 
-const usersFile = path.join(__dirname, "users.json"); // File per salvare gli utenti
+    return res.status(401).json({ message: "Invalid username or password" });
+});
 
+// Endpoint di registrazione
 app.post("/register", async (req, res) => {
     const { username, password } = req.body;
 
@@ -55,21 +55,16 @@ app.post("/register", async (req, res) => {
         return res.status(400).json({ message: "Username and password are required." });
     }
 
-    // Controlla se l'utente esiste già
-    const users = JSON.parse(fs.readFileSync(usersFile, "utf8") || "{}");
+    const users = loadUsers();
+
     if (users[username]) {
         return res.status(400).json({ message: "User already exists." });
     }
 
-    // Crea una password hashata
-    const hashedPassword = await bcrypt.hash(password, 10);
+    users[username] = { username, password };
+    fs.writeFileSync(path.join(__dirname, "users.json"), JSON.stringify(users, null, 2));
 
-    // Registra l'utente
-    users[username] = { id: uuidv4(), password: hashedPassword };
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-
-    // Crea la directory Git per l'utente
-    const userDir = path.join(__dirname, "repo", "users", username);
+    const userDir = path.join(repoPath, "users", username);
     if (!fs.existsSync(userDir)) {
         fs.mkdirSync(userDir, { recursive: true });
     }
@@ -77,60 +72,90 @@ app.post("/register", async (req, res) => {
     res.status(201).json({ message: "User registered successfully." });
 });
 
-// Login utente
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+app.post("/save-file", (req, res) => {
+    const { username, title, content } = req.body;
+  
+    if (!username || !title || !content) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+  
+    const userDir = path.join(__dirname, "repo/users", username);
+  
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+    }
+  
+    const filePath = path.join(userDir, `${title}.md`);
+  
+    fs.writeFile(filePath, content, (err) => {
+      if (err) {
+        return res.status(500).json({ message: "Error saving file." });
+      }
+      res.status(200).json({ message: "File saved successfully." });
+    });
+  });
 
-  const user = users.find((u) => u.username === username);
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(400).json({ message: "Invalid username or password." });
-  }
 
-  const token = generateToken(username);
-  res.json({ token });
+// Endpoint per ottenere la lista dei file di un utente
+app.get("/files/:username", (req, res) => {
+    const { username } = req.params;
+
+    const userDir = path.join(repoPath, "users", username);
+    if (!fs.existsSync(userDir)) {
+        return res.status(404).json({ message: "User directory not found." });
+    }
+
+    const files = fs.readdirSync(userDir).filter(file => file.endsWith(".md"));
+    res.status(200).json({ files });
 });
 
-// Salva un file Markdown
-app.post("/save-file", authenticate, async (req, res) => {
-  const { content } = req.body;
-  const username = req.user.username;
+// Endpoint per ottenere tutti i file degli utenti
+app.get("/get-files", (req, res) => {
+    const users = loadUsers();
+    const userFiles = [];
 
-  const userDir = path.join(USERS_DIR, username);
-  if (!fs.existsSync(userDir)) {
-    fs.mkdirSync(userDir, { recursive: true });
-  }
+    for (const username in users) {
+        const userDir = path.join(repoPath, "users", username);
+        if (fs.existsSync(userDir)) {
+            const files = fs.readdirSync(userDir).filter(file => file.endsWith(".md"));
+            userFiles.push({ username, files });
+        }
+    }
 
-  const filename = uuidv4() + ".md";
-  const filePath = path.join(userDir, filename);
-  fs.writeFileSync(filePath, content);
-
-  try {
-    await git.cwd(REPO_PATH).add(filePath);
-    await git.cwd(REPO_PATH).commit(`Saved by ${username}`);
-    res.json({ message: "File saved successfully.", filename });
-  } catch (err) {
-    res.status(500).json({ message: "Error saving file.", error: err.message });
-  }
+    res.status(200).json(userFiles);
 });
 
-// Ottieni la lista dei file
-app.get("/get-files", authenticate, (req, res) => {
-  const username = req.user.username;
-  const userDir = path.join(USERS_DIR, username);
+// Endpoint per salvare una nota con il titolo come nome del file
+app.post("/save-file", (req, res) => {
+    const { content, username, title } = req.body;
 
-  if (!fs.existsSync(userDir)) {
-    return res.json({ files: [] });
-  }
+    // Verifica che content, username, e title siano presenti
+    if (!content || !username || !title) {
+        return res.status(400).json({ message: "Content, username, and title are required." });
+    }
 
-  const files = fs.readdirSync(userDir).map((file) => ({
-    filename: file,
-    path: path.join(userDir, file),
-  }));
+    // Percorso della directory dell'utente
+    const userDir = path.join(__dirname, "repo", "users", username);
 
-  res.json({ files });
+    // Verifica se la cartella dell'utente esiste, altrimenti la crea
+    if (!fs.existsSync(userDir)) {
+        fs.mkdirSync(userDir, { recursive: true });
+    }
+
+    // Percorso del file con il titolo come nome del file
+    const filePath = path.join(userDir, `${title}.md`);
+
+    // Scrittura del file
+    fs.writeFile(filePath, content, (err) => {
+        if (err) {
+            console.error("Error writing file:", err);
+            return res.status(500).json({ message: "Failed to save note." });
+        }
+
+        res.status(200).json({ message: "Note saved successfully." });
+    });
 });
 
-// Avvia il server
-app.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
 });

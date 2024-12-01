@@ -1,21 +1,17 @@
-import React, { useState } from "react";
-import LoginPage from "./pages/login";
-import NoteEditor from "./pages/editor";
-import RegisterPage from "./pages/register";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/login";
+import Register from "./pages/Register";
+import Editor from "./pages/Editor";
 
 function App() {
-    const [token, setToken] = useState<string | null>(null);
-    const [showRegister, setShowRegister] = useState(false);
-
-    if (!token) {
-        return showRegister ? (
-            <RegisterPage onRegister={() => setShowRegister(false)} />
-        ) : (
-            <LoginPage onLogin={(jwt) => setToken(jwt)} />
-        );
-    }
-
-    return <NoteEditor token={token} />;
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/editor" element={<Editor />} />
+    </Routes>
+  );
 }
 
 export default App;

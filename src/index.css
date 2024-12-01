@@ -89,3 +89,17 @@ html, body {
   color: #fff;
   font-size: 20px;
 }
+
+.ql-editor {
+  min-height: 200px;
+}
+
+.ql-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ql-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}

@@ -1,61 +1,83 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PageHeader } from "../components/PageHeader";
 
-export default function RegisterForm({ onRegister }: { onRegister: () => void }) {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
+export default function Register() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-    const handleRegister = async () => {
-        if (password !== confirmPassword) {
-            alert("Passwords do not match!");
-            return;
-        }
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-        const response = await fetch("http://localhost:5000/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-        });
+    try {
+      const response = await fetch("http://localhost:5000/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
+      if (!response.ok) {
         const data = await response.json();
-        if (response.ok) {
-            alert("User registered successfully!");
-            onRegister();
-        } else {
-            alert(data.message || "Failed to register.");
-        }
-    };
+        throw new Error(data.message || "Registration failed");
+      }
 
-    return (
-        <div className="p-4 bg-white rounded shadow-md max-w-sm mx-auto">
-            <h1 className="text-xl font-bold mb-4">Register</h1>
+      // Redirect to login or another page after success
+      navigate("/login");
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
+      <div className="max-w-md mx-auto">
+        <PageHeader
+          title="Register"
+          description="Create an account to save and manage your notes"
+          gradient="from-green-400 to-blue-500"
+        />
+
+        <form onSubmit={handleRegister} className="space-y-6">
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium">
+              Username
+            </label>
             <input
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="block w-full p-2 mb-3 border border-gray-300 rounded"
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="mt-1 w-full px-4 py-2 rounded-md bg-gray-200 text-gray-900"
             />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium">
+              Password
+            </label>
             <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full p-2 mb-3 border border-gray-300 rounded"
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 w-full px-4 py-2 rounded-md bg-gray-200 text-gray-900"
             />
-            <input
-                type="password"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="block w-full p-2 mb-3 border border-gray-300 rounded"
-            />
-            <button
-                onClick={handleRegister}
-                className="block w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
-            >
-                Register
-            </button>
-        </div>
-    );
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-2 px-4 rounded-md hover:opacity-90"
+          >
+            Register
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
