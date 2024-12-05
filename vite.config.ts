@@ -18,8 +18,15 @@ export default defineConfig({
     global: 'window',
   },
   server: {
+    watch: {
+      usePolling: true,
+      interval: 1000
+    },
+    hmr: {
+      overlay: true
+    },
     mimeTypes: {
       'application/javascript': ['.mjs', '.js'],
     },
-  },
+  }
 });
