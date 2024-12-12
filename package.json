@@ -39,7 +39,7 @@
     "quill-magic-url": "^4.2.0",
     "quill-markdown-shortcuts": "^0.0.10",
     "quill-table-ui": "^1.0.7",
-    "react": "^18.3.1",
+    "react": "^19.0.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
     "react-flow-renderer": "^10.3.17",
@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
-    "@types/react": "^18.3.5",
+    "@types/react": "^19.0.0",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.1",
